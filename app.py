@@ -103,6 +103,6 @@ with gr.Blocks(title="Qwen Voice Clone Web GUI") as demo:
     )
 
 if __name__ == "__main__":
-    # 0.0.0.0 (모든 네트워크 인터페이스)을 통해 맥북이 켜져있다면 다른 기기에서도 접속 가능하도록 세팅
-    print("Starting Web Server... Access it via http://127.0.0.1:7860/ or your local network IP.")
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=False)
+    # 0.0.0.0 (모든 네트워크 인터페이스)과 share=True를 통해 외부 인터넷망에서 누구나 접속할 수 있는 퍼블릭 링크 생성
+    print("Starting Web Server... Access it via http://127.0.0.1:7860/ or wait for the public Gradio link.")
+    demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
