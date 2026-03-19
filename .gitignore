@@ -1,0 +1,16 @@
+# Environments
+qwen-env/
+.env
+__pycache__/
+
+# Mac
+.DS_Store
+
+# Audio outputs
+*.wav
+*.mp3
+temp_*
+output_*
+
+# Jupyter/Python
+*.pyc

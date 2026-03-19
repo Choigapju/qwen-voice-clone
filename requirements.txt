@@ -1,0 +1,6 @@
+qwen-tts
+soundfile
+torch
+torchvision
+torchaudio
+gradio
