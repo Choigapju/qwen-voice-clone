@@ -1,6 +1,7 @@
 import gradio as gr
 import torch
 import soundfile as sf
+import librosa
 from qwen_tts import Qwen3TTSModel
 import os
 from transformers import pipeline
@@ -29,11 +30,11 @@ def clone_voice(audio_path, ref_text, target_text):
         return None, "생성할 대사를 입력해주세요."
     
     try:
-        # 2. 업로드된 오디오 읽기
-        audio_data, sr = sf.read(audio_path)
+        # 2. 업로드된 오디오 읽기 (m4a 등 다양한 포맷 지원을 위해 librosa 사용)
+        audio_data, sr = librosa.load(audio_path, sr=None, mono=True)
         
         # 3. 앞부분 5초만 추출 (모델 내부에서 5초 추출하여 복제 세팅)
-        max_samples = sr * 5
+        max_samples = int(sr * 5)
         short_audio = audio_data[:max_samples]
         
         # 임시 파일로 5초 분량 오디오 저장
