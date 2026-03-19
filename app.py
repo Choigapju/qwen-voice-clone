@@ -3,6 +3,7 @@ import torch
 import soundfile as sf
 from qwen_tts import Qwen3TTSModel
 import os
+from transformers import pipeline
 
 # 디바이스 설정 (Mac CPU/GPU 호환)
 device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -14,13 +15,18 @@ model = Qwen3TTSModel.from_pretrained(
     device_map=device,
     dtype=torch.float32,
 )
-print("Model loaded successfully! Ready to serve.")
+print("Qwen3-TTS Model loaded successfully!")
+
+# Whisper 모델 로드 (STT용)
+print(f"Loading Whisper STT model on {device}...")
+stt_pipe = pipeline("automatic-speech-recognition", model="openai/whisper-small", device=device)
+print("Whisper Model loaded successfully! Ready to serve.")
 
 def clone_voice(audio_path, ref_text, target_text):
     if not audio_path:
         return None, "오디오 파일을 업로드하거나 녹음해주세요."
-    if not ref_text or not target_text:
-        return None, "기준 텍스트(실제 대사)와 생성할 대사를 모두 입력해주세요."
+    if not target_text:
+        return None, "생성할 대사를 입력해주세요."
     
     try:
         # 2. 업로드된 오디오 읽기
@@ -33,6 +39,13 @@ def clone_voice(audio_path, ref_text, target_text):
         # 임시 파일로 5초 분량 오디오 저장
         temp_filename = "temp_gradio_5s.wav"
         sf.write(temp_filename, short_audio, sr)
+        
+        # --- Whisper 자동 자막 생성 ---
+        if not ref_text or not ref_text.strip():
+            print("원본 음성 대본(Reference Text)이 비어있어 Whisper 모델로 자동 추출합니다...")
+            stt_result = stt_pipe(temp_filename, generate_kwargs={"language": "korean"})
+            ref_text = stt_result["text"].strip()
+            print(f"자동 추출된 대본: {ref_text}")
         
         print("음성을 복제하여 새로운 대사를 생성하는 중입니다...")
         
@@ -67,10 +80,10 @@ with gr.Blocks(title="Qwen Voice Clone Web GUI") as demo:
             gr.Markdown("### 1. 🎤 오디오 업로드")
             audio_input = gr.Audio(type="filepath", label="Reference Audio (음성 파일 업로드 또는 직접 녹음)")
             
-            gr.Markdown("### 2. 📝 실제 대사 입력 (최초 5초)")
+            gr.Markdown("### 2. 📝 실제 대사 입력 (선택사항)")
             with gr.Accordion("도움말 보기", open=False):
-                gr.Markdown("Qwen Voice Clone 모델은 원본 음성의 내용을 인식해야 복제를 매끄럽게 수행합니다. 업로드하신 음성의 **처음 5초 동안 실제로 한 말**을 적어주세요.")
-            ref_text_input = gr.Textbox(label="Reference Text", placeholder="예: 안녕하세요, 저는 지금 음성 복제 테스트를 위해 녹음을 진행하고 있습니다.")
+                gr.Markdown("Qwen Voice Clone 모델은 원본 음성의 내용을 인식해야 복제를 매끄럽게 수행합니다. 직접 입력하지 않으면 **Whisper AI가 자동으로 음성을 인식하여 대본을 작성**합니다.")
+            ref_text_input = gr.Textbox(label="Reference Text (비워두면 자동 인식)", placeholder="빈칸으로 두시면 자동으로 인식됩니다. 혹시 직접 입력하고 싶다면 작성해 주세요.")
             
             gr.Markdown("### 3. ✨ 생성할 대사 입력")
             target_text_input = gr.Textbox(label="Target Text", placeholder="예: 와! 이렇게 웹 환경에서도 제 목소리가 완벽하게 복원되네요. 정말 신기합니다!", lines=3)
